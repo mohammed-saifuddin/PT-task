@@ -1,0 +1,75 @@
+- name: Setup Yii2 App with Docker Swarm and NGINX
+  hosts: web
+  become: true
+  vars:
+    yii2_repo: "https://github.com/mohammed-saifuddin/PT-task"
+    app_dir: "/opt/yii2-app"
+    docker_compose_url: "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64"
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - nginx
+          - php
+          - php-cli
+          - php-mysql
+          - git
+          - unzip
+          - curl
+        state: present
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Install Docker Compose
+      get_url:
+        url: "{{ docker_compose_url }}"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Initialize Docker Swarm
+      shell: docker swarm init
+      register: swarm_output
+      failed_when: false
+      changed_when: "'Swarm initialized' in swarm_output.stdout"
+
+    - name: Clone Yii2 app repository
+      git:
+        repo: "{{ yii2_repo }}"
+        dest: "{{ app_dir }}"
+        version: main
+        force: yes
+
+    - name: Deploy Yii2 app via Docker Swarm
+      shell: docker stack deploy -c {{ app_dir }}/docker-compose.yml yii2app
+
+    - name: Configure NGINX reverse proxy
+      copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+          server {
+              listen 80;
+              server_name localhost;
+
+              location / {
+                  proxy_pass http://localhost:8080;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
+          }
+        mode: '0644'
+
+    - name: Restart NGINX
+      service:
+        name: nginx
+        state: restarted
