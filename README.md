@@ -160,15 +160,6 @@ jobs:
 
 ---
 
-## 8. Cleanup & Rollback (Optional)
-
-```bash
-docker service ls
-docker service rm <service_name>
-docker swarm leave --force
-```
-
----
 
 ## ✅ Success
 
