@@ -13,8 +13,8 @@ Deploy a sample PHP Yii2 application using Docker Swarm and NGINX (host-based re
 ├── ansible/
 │   ├── inventory
 │   ├── playbook.yml
-│   ├── nginx/
-│   │   └── yii2.conf
+│── nginx/
+│   │─ yii2.conf
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml
